@@ -1,0 +1,1221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>VolunteerVerse — Volunteer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+  :root{
+    --ink:#152420; --bg:#EEF2EF; --paper:#FBFCFA;
+    --teal:#1F4B43; --teal-dim:#3C6A61;
+    --gold:#C9902F; --gold-dim:#E8C77E; --rust:#B4552F;
+    --line:#D6DED9;
+  }
+  :root:not([data-theme="light"]){ }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ink:#EDF2EF; --bg:#111815; --paper:#182420;
+      --teal:#3C7A6D; --teal-dim:#5C9689;
+      --gold:#D8A544; --gold-dim:#E8C77E; --rust:#D07A54;
+      --line:#2A3733;
+    }
+  }
+  :root[data-theme="dark"]{
+    --ink:#EDF2EF; --bg:#111815; --paper:#182420;
+    --teal:#3C7A6D; --teal-dim:#5C9689;
+    --gold:#D8A544; --gold-dim:#E8C77E; --rust:#D07A54;
+    --line:#2A3733;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;}
+  html{scroll-padding-top:env(safe-area-inset-top,0px);}
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:'IBM Plex Sans',sans-serif; -webkit-font-smoothing:antialiased;
+    padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  h1,h2,h3,.serif{font-family:'Fraunces',serif;}
+  a{color:inherit;}
+  #app{min-height:100%;display:flex;flex-direction:column;}
+
+  .topbar{
+    display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;
+    padding:16px 24px; background:var(--teal); color:#FBFCFA; border-bottom:3px solid var(--gold);
+    position:sticky; top:env(safe-area-inset-top,0px); z-index:20;
+  }
+  .brand{display:flex;align-items:baseline;gap:10px;}
+  .brand .mark{
+    width:32px;height:32px;border-radius:50%;border:2px solid var(--gold-dim);
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Fraunces',serif;font-weight:600;font-size:15px;color:var(--gold-dim);flex-shrink:0;
+  }
+  .brand h1{font-size:19px;margin:0;font-weight:600;}
+  .brand .tag{font-size:12px;color:#CFE0DA;}
+  .session{display:flex;align-items:center;gap:10px;font-size:13px;flex-wrap:wrap;}
+  .session .who{color:#DCEAE4;}
+  .session .who b{color:#fff;}
+  .btn-ghost{
+    background:transparent;border:1px solid rgba(255,255,255,0.35);color:#fff;
+    padding:6px 13px;border-radius:3px;font-size:13px;cursor:pointer;font-family:inherit;
+  }
+  .btn-ghost:hover{border-color:#fff;}
+  .live-pill{
+    display:inline-flex;align-items:center;gap:6px;font-size:11px;font-family:'IBM Plex Mono',monospace;
+    color:#CFE0DA;border:1px solid rgba(255,255,255,0.3);padding:3px 9px;border-radius:20px;white-space:nowrap;
+  }
+  .live-dot{width:6px;height:6px;border-radius:50%;background:#6FE0A6;animation:pulse 1.6s infinite;flex-shrink:0;}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(111,224,166,.55);}70%{box-shadow:0 0 0 6px rgba(111,224,166,0);}100%{box-shadow:0 0 0 0 rgba(111,224,166,0);}}
+
+  main{flex:1;width:100%;overflow-x:hidden;}
+
+  .gate{max-width:900px;margin:0 auto;padding:48px 20px 70px;}
+  .gate-hero{display:grid;grid-template-columns:1.15fr 1fr;gap:36px;align-items:center;margin-bottom:46px;}
+  .gate-hero h2{font-size:36px;line-height:1.15;margin:0 0 14px;font-weight:600;}
+  .gate-hero p{font-size:15px;line-height:1.6;color:var(--teal-dim);max-width:46ch;}
+  .stamp{
+    justify-self:end;width:150px;height:150px;border-radius:50%;border:2px dashed var(--teal-dim);
+    display:flex;align-items:center;justify-content:center;text-align:center;color:var(--teal);
+    transform:rotate(-8deg);font-family:'Fraunces',serif;
+  }
+  .stamp .inner{
+    width:118px;height:118px;border-radius:50%;border:1px solid var(--teal-dim);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:8px;
+  }
+  .stamp .inner span{font-size:10px;letter-spacing:1.3px;color:var(--teal-dim);font-family:'IBM Plex Mono',monospace;}
+  .stamp .inner strong{font-size:14px;line-height:1.2;}
+
+  .role-cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  .role-card{background:var(--paper);border:1px solid var(--line);border-radius:4px;padding:22px 20px;cursor:pointer;}
+  .role-card:hover{border-color:var(--teal-dim);}
+  .role-card.selected{border-color:var(--teal);box-shadow:0 0 0 1px var(--teal);}
+  .role-card h3{font-size:17px;margin:0 0 6px;font-weight:600;}
+  .role-card p{font-size:13px;color:var(--teal-dim);line-height:1.5;margin:0 0 12px;}
+  .role-card .pick{font-size:11.5px;color:var(--teal);font-family:'IBM Plex Mono',monospace;}
+
+  .signin-panel{margin-top:22px;background:var(--paper);border:1px solid var(--line);border-radius:4px;padding:22px;display:none;}
+  .signin-panel.show{display:block;}
+  .signin-panel label{display:block;font-size:12px;color:var(--teal-dim);margin-bottom:6px;font-family:'IBM Plex Mono',monospace;}
+  .signin-panel input{
+    width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:3px;font-size:14.5px;
+    font-family:inherit;background:var(--bg);color:var(--ink);margin-bottom:14px;
+  }
+  .signin-panel input:focus{outline:2px solid var(--teal-dim);outline-offset:1px;}
+  .btn-primary{
+    background:var(--teal);color:#fff;border:none;padding:10px 20px;border-radius:3px;
+    font-size:14px;font-family:inherit;font-weight:500;cursor:pointer;
+  }
+  .btn-primary:hover{background:#173a34;}
+  .btn-primary:disabled{background:#9DB0AA;cursor:not-allowed;}
+  .mode-note{font-size:11.5px;color:var(--teal-dim);margin-top:10px;}
+  .mode-note.err{color:var(--rust);min-height:14px;}
+
+  .auth-tabs{display:flex;gap:4px;background:var(--bg);border-radius:4px;padding:4px;margin-bottom:4px;}
+  .auth-tab{
+    flex:1;background:none;border:none;padding:8px 10px;border-radius:3px;font-size:13px;
+    font-family:inherit;cursor:pointer;color:var(--teal-dim);font-weight:500;
+  }
+  .auth-tab.active{background:var(--paper);color:var(--teal);box-shadow:0 1px 2px rgba(0,0,0,0.06);}
+  .auth-form{display:flex;flex-direction:column;}
+
+  .dash{max-width:1160px;margin:0 auto;padding:24px 18px 60px;display:grid;grid-template-columns:250px 1fr;gap:22px;}
+  @media(max-width:860px){.dash{grid-template-columns:1fr;}.gate-hero{grid-template-columns:1fr;}.stamp{justify-self:start;margin-top:6px;}}
+
+  .side{display:flex;flex-direction:column;gap:14px;}
+  .id-card{background:var(--teal);color:#fff;border-radius:5px;padding:18px;}
+  .id-card .av{
+    width:40px;height:40px;border-radius:50%;background:var(--gold);color:#152420;
+    display:flex;align-items:center;justify-content:center;font-family:'Fraunces',serif;font-weight:600;font-size:16px;margin-bottom:10px;
+  }
+  .id-card h3{margin:0 0 2px;font-size:16px;font-weight:600;}
+  .id-card .role-lbl{font-size:11.5px;color:#CFE0DA;font-family:'IBM Plex Mono',monospace;}
+  .id-card .stats{margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.18);display:flex;justify-content:space-between;}
+  .id-card .stats b{display:block;font-size:19px;font-family:'Fraunces',serif;}
+  .id-card .stats span{font-size:10.5px;color:#CFE0DA;}
+
+  .nav-box{background:var(--paper);border:1px solid var(--line);border-radius:5px;padding:6px;}
+  .nav-box button{
+    display:flex;align-items:center;justify-content:space-between;width:100%;text-align:left;background:none;border:none;
+    padding:10px 12px;border-radius:3px;font-size:13.5px;font-family:inherit;cursor:pointer;color:var(--ink);
+  }
+  .nav-box button.active{background:var(--bg);font-weight:600;color:var(--teal);}
+  .nav-box button:hover:not(.active){background:var(--bg);}
+  .unread{background:var(--rust);color:#fff;font-size:10px;font-family:'IBM Plex Mono',monospace;padding:1px 7px;border-radius:9px;}
+
+  .panel{background:var(--paper);border:1px solid var(--line);border-radius:5px;padding:22px;margin-bottom:20px;overflow-x:auto;}
+  .panel h2{font-size:19px;margin:0 0 4px;font-weight:600;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .panel .sub{font-size:12.5px;color:var(--teal-dim);margin-bottom:18px;}
+
+  .entry{display:grid;grid-template-columns:30px 1fr auto;gap:12px;align-items:start;padding:15px 0;border-top:1px solid var(--line);}
+  .entry:first-of-type{border-top:none;}
+  .entry .num{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--teal-dim);padding-top:3px;}
+  .entry .body h4{margin:0 0 4px;font-size:15px;font-weight:600;}
+  .entry .body .meta{font-size:12px;color:var(--teal-dim);margin-bottom:7px;}
+  .entry .body .loc{font-size:12px;color:var(--teal-dim);font-family:'IBM Plex Mono',monospace;}
+  .badge{display:inline-block;font-size:10px;font-family:'IBM Plex Mono',monospace;padding:2px 8px;border-radius:10px;}
+  .badge.open{background:var(--bg);color:var(--teal);}
+  .badge.done{background:var(--bg);color:var(--gold);}
+  .checkin-btn{
+    background:var(--gold);color:#152420;border:none;padding:8px 15px;border-radius:3px;
+    font-size:12.5px;font-family:inherit;font-weight:600;cursor:pointer;white-space:nowrap;
+  }
+  .checkin-btn:hover{background:#B37F27;}
+  .checkin-btn:disabled{background:#DCD3BE;color:#8B8371;cursor:progress;}
+  .checkin-btn.done-btn{background:transparent;border:1px solid var(--teal-dim);color:var(--teal-dim);cursor:default;}
+
+  .geo-result{margin-top:9px;background:var(--bg);border-left:3px solid var(--gold);padding:9px 11px;font-size:12px;border-radius:2px;}
+  .geo-result.err{border-left-color:var(--rust);}
+
+  .log-item{display:flex;gap:11px;padding:12px 0;border-top:1px solid var(--line);}
+  .log-item:first-of-type{border-top:none;}
+  .log-item .dot{width:8px;height:8px;border-radius:50%;background:var(--gold);margin-top:6px;flex-shrink:0;}
+  .log-item .txt{font-size:13px;line-height:1.5;}
+  .log-item .txt .when{color:var(--teal-dim);font-size:11.5px;}
+  .log-item .txt .addr{color:var(--teal-dim);font-family:'IBM Plex Mono',monospace;font-size:11px;}
+
+  .stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px;}
+  .stat{background:var(--paper);border:1px solid var(--line);border-radius:5px;padding:16px 18px;}
+  .stat b{display:block;font-family:'Fraunces',serif;font-size:27px;font-weight:600;color:var(--teal);}
+  .stat span{font-size:11.5px;color:var(--teal-dim);}
+
+  #map{height:360px;border-radius:5px;border:1px solid var(--line);}
+
+  table{width:100%;border-collapse:collapse;font-size:12.5px;}
+  th{text-align:left;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--teal-dim);padding:8px 10px;border-bottom:1px solid var(--line);}
+  td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top;}
+  tr:last-child td{border-bottom:none;}
+  .coord{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--teal-dim);}
+
+  .empty{padding:26px 0;text-align:center;color:var(--teal-dim);font-size:13px;}
+  .foot-note{font-size:11px;color:var(--teal-dim);margin-top:6px;}
+
+  .activity-item{display:grid;grid-template-columns:26px 1fr auto;gap:10px;align-items:start;padding:13px 0;border-top:1px solid var(--line);}
+  .activity-item:first-of-type{border-top:none;}
+  .activity-item.fresh{animation:flash 1.4s ease-out;}
+  @keyframes flash{0%{background:#FBF2DC55;}100%{background:transparent;}}
+  .status-dot{width:9px;height:9px;border-radius:50%;margin-top:4px;flex-shrink:0;}
+  .status-dot.pending{background:var(--gold);animation:pulse 1.2s infinite;}
+  .status-dot.success{background:var(--teal);}
+  .status-dot.failed{background:var(--rust);}
+  .activity-item .a-title{font-size:13.5px;font-weight:600;margin:0 0 3px;}
+  .activity-item .a-meta{font-size:12px;color:var(--teal-dim);}
+  .activity-item .a-addr{font-size:11px;color:var(--teal-dim);font-family:'IBM Plex Mono',monospace;margin-top:3px;}
+  .status-tag{font-size:10px;font-family:'IBM Plex Mono',monospace;padding:3px 9px;border-radius:10px;white-space:nowrap;}
+  .status-tag.pending{background:var(--bg);color:var(--gold);}
+  .status-tag.success{background:var(--bg);color:var(--teal);}
+  .status-tag.failed{background:var(--bg);color:var(--rust);}
+
+  .task-form{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;margin-bottom:20px;align-items:end;}
+  @media(max-width:760px){.task-form{grid-template-columns:1fr;}}
+  .task-form div{display:flex;flex-direction:column;gap:5px;}
+  .task-form label{font-size:11px;font-family:'IBM Plex Mono',monospace;color:var(--teal-dim);}
+  .task-form input{padding:9px 10px;border:1px solid var(--line);border-radius:3px;font-size:13.5px;font-family:inherit;background:var(--bg);color:var(--ink);}
+  .task-form input:focus{outline:2px solid var(--teal-dim);outline-offset:1px;}
+  .task-mini{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 0;border-top:1px solid var(--line);}
+  .task-mini:first-of-type{border-top:none;}
+  .task-mini .t-title{font-size:13.5px;font-weight:600;margin:0 0 3px;}
+  .task-mini .t-meta{font-size:11.5px;color:var(--teal-dim);}
+  .del-btn{background:none;border:1px solid var(--line);color:var(--rust);border-radius:3px;padding:5px 10px;font-size:11.5px;cursor:pointer;font-family:inherit;}
+  .del-btn:hover{border-color:var(--rust);}
+
+  #toast-stack{position:fixed;top:calc(env(safe-area-inset-top,0px) + 14px);right:14px;display:flex;flex-direction:column;gap:8px;z-index:999;max-width:92vw;}
+  .toast{
+    background:var(--ink);color:var(--bg);padding:11px 15px;border-radius:5px;font-size:12.5px;
+    box-shadow:0 6px 18px rgba(0,0,0,0.18);border-left:3px solid var(--gold);max-width:290px;
+  }
+  .toast b{display:block;font-size:12.5px;margin-bottom:2px;}
+  .toast span{font-size:11px;opacity:0.75;}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="toast-stack"></div>
+
+<script>
+/* ---------------- Fallback seed tasks (used only if nothing exists yet) ---------------- */
+const SEED_TASKS = [
+  {id:'t1', title:'Book donation drive — City Library', org:'VolunteerVerse NGO', place:'City Central Library'},
+  {id:'t2', title:'Tree plantation & cleanup', org:'Green Nagpur Trust', place:'Ambazari Lake Park'},
+  {id:'t3', title:'Health camp registration desk', org:'VolunteerVerse NGO', place:'Community Health Centre'},
+  {id:'t4', title:'Winter clothing distribution', org:'Warmth Drive Nagpur', place:'Railway Station Shelter'},
+];
+
+const POLL_MS = 2000; // only used in local-fallback mode
+
+let state = {
+  role: null, name: '', username: null, view: 'tasks',
+  tasks: [], checkins: [], activity: [],
+  loadingTask: null, unreadActivity: 0, freshIds: new Set(),
+  lastSynced: null, mode: null, // 'cloud' | 'local'
+  taskFormError: '',
+};
+
+let db = null;
+let unsubs = [];
+let bc = null;
+let pollTimer = null;
+
+/* ================= SHARED LIVE BACKEND (no account needed) =================
+   Both apps connect straight from the browser to a free public MQTT broker
+   over secure WebSocket. Every record is a "retained" message on a topic that
+   is private to this project (APP_ID), so new devices instantly receive the
+   current data and every change is pushed live to all connected devices.
+   Wrapped in a tiny Firestore-like API so the rest of the app is unchanged. */
+const APP_ID = 'vv-9fa54cb80b';
+const BROKERS = ['wss://broker.emqx.io:8084/mqtt', 'wss://broker.hivemq.com:8884/mqtt', 'wss://test.mosquitto.org:8081', 'wss://mqtt.eclipseprojects.io:443/mqtt'];
+const TOPIC_PREFIX = 'volunteerverse/' + APP_ID + '/';
+
+function mqttEncLen(n){ const out=[]; do{ let b=n%128; n=Math.floor(n/128); if(n>0) b|=128; out.push(b); }while(n>0); return out; }
+function mqttStr(s){ const b=new TextEncoder().encode(s); return [b.length>>8, b.length&255, ...b]; }
+function mqttPacket(first, bodyBytes){
+  const len = mqttEncLen(bodyBytes.length);
+  const out = new Uint8Array(1 + len.length + bodyBytes.length);
+  out[0]=first; out.set(len,1); out.set(bodyBytes,1+len.length);
+  return out;
+}
+function mqttConnect(clientId){
+  return mqttPacket(0x10, new Uint8Array([...mqttStr('MQTT'), 4, 2, 0, 30, ...mqttStr(clientId)]));
+}
+function mqttSubscribe(topic, pid){
+  return mqttPacket(0x82, new Uint8Array([pid>>8, pid&255, ...mqttStr(topic), 0]));
+}
+function mqttPublish(topic, payload, retain){
+  const t = new Uint8Array(mqttStr(topic));
+  const p = new TextEncoder().encode(payload);
+  const body = new Uint8Array(t.length + p.length);
+  body.set(t,0); body.set(p,t.length);
+  return mqttPacket(0x30 | (retain?1:0), body);
+}
+function mqttParse(buf){
+  const packets=[]; let i=0;
+  while(i < buf.length){
+    if(buf.length - i < 2) break;
+    let mult=1, len=0, j=i+1, b, complete=true;
+    do{
+      if(j >= buf.length){ complete=false; break; }
+      b = buf[j++]; len += (b & 127) * mult; mult *= 128;
+    }while(b & 128);
+    if(!complete || buf.length - j < len) break;
+    packets.push({first: buf[i], body: buf.slice(j, j+len)});
+    i = j + len;
+  }
+  return {packets, rest: buf.slice(i)};
+}
+
+function createMqttStore(send){
+  const cache = new Map();   // "collection/id" -> data
+  const listeners = [];      // {col, order, dir, limit, cb}
+
+  function parts(p){ return p.split('/'); }
+  function buildSnap(l, changes){
+    let docs = [];
+    cache.forEach((data, path)=>{
+      const pp = parts(path);
+      if(pp.length === 2 && pp[0] === l.col) docs.push({id: pp[1], data: ()=>data, _d: data});
+    });
+    if(l.order){
+      docs.sort((a,b)=>{
+        const x=a._d[l.order], y=b._d[l.order];
+        const r = x < y ? -1 : x > y ? 1 : 0;
+        return l.dir === 'desc' ? -r : r;
+      });
+    }
+    if(l.limit) docs = docs.slice(0, l.limit);
+    return {
+      docs, empty: docs.length === 0, size: docs.length,
+      docChanges: ()=> docs.filter(d=>changes.has(d.id)).map(d=>({type: changes.get(d.id), doc: d}))
+    };
+  }
+  function notify(col, changes){
+    listeners.filter(l=>l.col === col).forEach(l=>{ try{ l.cb(buildSnap(l, changes)); }catch(e){ console.error(e); } });
+  }
+  // Apply a change coming from the network (or from ourselves)
+  function applyRemote(path, data){
+    const pp = parts(path);
+    if(pp.length !== 2) return;
+    const existed = cache.has(path);
+    if(data === null){
+      if(!existed) return;
+      cache.delete(path);
+      notify(pp[0], new Map());
+      return;
+    }
+    if(existed){
+      const cur = cache.get(path);
+      if(JSON.stringify(cur) === JSON.stringify(data)) return;
+      if((cur._ts || 0) > (data._ts || 0)) return; // older copy replayed by another server: ignore
+    }
+    cache.set(path, data);
+    notify(pp[0], new Map([[pp[1], existed ? 'modified' : 'added']]));
+  }
+  function write(path, data){
+    if(data !== null) data = {...data, _ts: Date.now()};
+    applyRemote(path, data);
+    send(TOPIC_PREFIX + path, data === null ? '' : JSON.stringify(data));
+  }
+  function newId(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+  function docRef(path){
+    const id = parts(path)[1];
+    return {
+      id, path,
+      get: async ()=>({ exists: cache.has(path), data: ()=>cache.get(path) }),
+      set: async (data)=>{ write(path, data); },
+      update: async (patch)=>{ write(path, {...(cache.get(path)||{}), ...patch}); },
+      delete: async ()=>{ write(path, null); }
+    };
+  }
+  function query(col, opts){
+    const q = {
+      orderBy: (f, dir)=>query(col, {...opts, order: f, dir: dir||'asc'}),
+      limit: (n)=>query(col, {...opts, limit: n}),
+      get: async ()=>buildSnap({col, ...opts}, new Map()),
+      onSnapshot: (cb)=>{
+        const l = {col, ...opts, cb};
+        listeners.push(l);
+        const all = new Map();
+        cache.forEach((d,p)=>{ const pp=parts(p); if(pp[0]===col && pp.length===2) all.set(pp[1],'added'); });
+        setTimeout(()=>{ try{ cb(buildSnap(l, all)); }catch(e){ console.error(e); } }, 0);
+        return ()=>{ const i=listeners.indexOf(l); if(i>-1) listeners.splice(i,1); };
+      },
+      add: async (data)=>{ const id = newId(); write(col + '/' + id, data); return docRef(col + '/' + id); }
+    };
+    return q;
+  }
+  return {
+    collection: (name)=>query(name, {}),
+    doc: (path)=>docRef(path),
+    _receive: (topic, payloadStr)=>{
+      if(!topic.startsWith(TOPIC_PREFIX)) return;
+      const path = topic.slice(TOPIC_PREFIX.length);
+      if(payloadStr === ''){ applyRemote(path, null); return; }
+      try{ applyRemote(path, JSON.parse(payloadStr)); }catch(e){}
+    }
+  };
+}
+
+// Connects to ALL brokers at the same time and mirrors every change to each one, so two
+// devices stay in sync even if they can only reach different servers. Resolves with a ready
+// db (after existing data has been replayed) or null if no server is reachable at all.
+function connectMqttDb(){
+  return new Promise((resolve)=>{
+    const links = [];
+    let resolved = false, failedCount = 0;
+    const clientId = 'vv' + Math.random().toString(36).slice(2,10);
+    const store = createMqttStore((topic, payload)=>{
+      const pkt = mqttPublish(topic, payload, true);
+      links.forEach(l=>{
+        if(l.ready && l.ws && l.ws.readyState === 1) l.ws.send(pkt);
+        else { l.queue.push(pkt); if(l.queue.length > 300) l.queue.shift(); }
+      });
+    });
+    store.connectedCount = ()=>links.filter(l=>l.ready).length;
+
+    function checkAllFailed(){
+      if(!resolved && failedCount >= links.length){ resolved = true; resolve(null); }
+    }
+    function scheduleRetry(l){
+      if(l.retryTimer) return;
+      l.retryTimer = setTimeout(()=>{ l.retryTimer = null; connectLink(l); }, 8000);
+    }
+    function connectLink(l){
+      let sock, settled = false;
+      const settle = (ok)=>{
+        if(settled) return;
+        settled = true; clearTimeout(timer);
+        if(!ok && !l.counted){ l.counted = true; failedCount++; checkAllFailed(); }
+      };
+      const timer = setTimeout(()=>{ settle(false); try{ sock.close(); }catch(e){} }, 6000);
+      let buffer = new Uint8Array(0);
+      try{ sock = new WebSocket(l.url, 'mqtt'); }catch(e){ settle(false); scheduleRetry(l); return; }
+      sock.binaryType = 'arraybuffer';
+      sock.onopen = ()=>{ sock.send(mqttConnect(clientId + Math.random().toString(36).slice(2,5))); };
+      sock.onmessage = (ev)=>{
+        const incoming = new Uint8Array(ev.data);
+        const merged = new Uint8Array(buffer.length + incoming.length);
+        merged.set(buffer, 0); merged.set(incoming, buffer.length);
+        const parsed = mqttParse(merged);
+        buffer = parsed.rest;
+        parsed.packets.forEach(p=>{
+          const type = p.first >> 4;
+          if(type === 2){                       // CONNACK
+            if(p.body[1] === 0) sock.send(mqttSubscribe(TOPIC_PREFIX + '#', 1));
+            else { settle(false); try{ sock.close(); }catch(e){} }
+          } else if(type === 9){                // SUBACK: link is live
+            l.ws = sock; l.ready = true; settled = true; clearTimeout(timer);
+            clearInterval(l.ping);
+            l.ping = setInterval(()=>{ if(sock.readyState === 1) sock.send(new Uint8Array([0xC0,0])); }, 20000);
+            while(l.queue.length) sock.send(l.queue.shift());
+            if(!resolved){ resolved = true; setTimeout(()=>resolve(store), 1500); } // let stored data arrive first
+          } else if(type === 3){                // PUBLISH
+            const qos = (p.first >> 1) & 3;
+            const tl = (p.body[0] << 8) | p.body[1];
+            const topic = new TextDecoder().decode(p.body.slice(2, 2+tl));
+            const off = 2 + tl + (qos > 0 ? 2 : 0);
+            store._receive(topic, new TextDecoder().decode(p.body.slice(off)));
+          }
+        });
+      };
+      sock.onclose = ()=>{
+        l.ready = false; clearInterval(l.ping);
+        settle(false);
+        scheduleRetry(l);
+      };
+      sock.onerror = ()=>{};
+    }
+    BROKERS.forEach(url=>{ const l = {url, ws:null, ready:false, queue:[], counted:false, ping:null, retryTimer:null}; links.push(l); connectLink(l); });
+  });
+}
+
+/* ================= DATA LAYER ================= */
+
+// Connects to the `db` capability immediately on page load — BEFORE anyone
+// logs in — because signup/login needs to check/write account records too,
+// not just tasks and check-ins. Login/signup both await this first.
+let dbReadyPromise = connectDb();
+async function connectDb(){
+  try{ db = await connectMqttDb(); }catch(e){ db = null; }
+  state.mode = db ? 'cloud' : 'local';
+  if(!db && !bc){
+    try{ bc = new BroadcastChannel('volunteerverse-sync'); }catch(e){ bc = null; }
+  }
+  updateConnNote();
+}
+function updateConnNote(){
+  const n = document.getElementById('conn-note');
+  if(!n) return;
+  if(db) n.innerHTML = '🟢 Connected — live sync across all devices is on.';
+  else n.innerHTML = '🟠 Could not reach the live server (your network may block it). Offline mode: this browser only. <a href="#" onclick="retryConnect();return false;" style="color:var(--teal);font-weight:600;">Retry connection</a>';
+}
+function retryConnect(){
+  const n = document.getElementById('conn-note');
+  if(n) n.textContent = '⏳ Connecting to live server…';
+  dbReadyPromise = connectDb();
+}
+
+// Called AFTER a successful login/signup — sets up live subscriptions for
+// tasks/activity/check-ins (accounts themselves are already handled above).
+async function initStore(){
+  await dbReadyPromise;
+  if(db){
+    await seedTasksIfNeeded();
+    subscribeCloud();
+  } else {
+    initLocalFallback();
+  }
+}
+
+function teardownStore(){
+  unsubs.forEach(u=>{ try{u();}catch(e){} });
+  unsubs = [];
+  stopLocalPolling();
+}
+
+async function seedTasksIfNeeded(){
+  try{
+    const snap = await db.collection('tasks').limit(1).get();
+    if(snap.empty){
+      // Fixed ids + set() so concurrent viewers seeding at once can't create duplicates.
+      for(const t of SEED_TASKS){
+        await db.doc('tasks/' + t.id).set({
+          title: t.title, org: t.org, place: t.place,
+          createdBy: 'VolunteerVerse', time: new Date(Date.now()).toISOString()
+        });
+      }
+    }
+  }catch(e){ /* non-fatal: page still works, just starts empty */ }
+}
+
+function subscribeCloud(){
+  const tasksUnsub = db.collection('tasks').orderBy('time','asc').onSnapshot(snap=>{
+    state.tasks = snap.docs.map(d=>({id:d.id, ...d.data()}));
+    render();
+  }, ()=>{});
+  unsubs.push(tasksUnsub);
+
+  const activityUnsub = db.collection('activity').orderBy('time','desc').limit(60).onSnapshot(snap=>{
+    const fresh = snap.docChanges().filter(c=>c.type==='added' || c.type==='modified').map(c=>c.doc.id);
+    const list = snap.docs.map(d=>({id:d.id, ...d.data()}));
+    const isFirstLoad = state.activity.length === 0 && !state.lastSynced;
+    state.activity = list;
+    state.freshIds = new Set(fresh);
+    if(state.role === 'admin' && !isFirstLoad){
+      snap.docChanges().forEach(c=>{
+        if((c.type==='added') && c.doc.data().volunteer !== state.name){
+          showToast(c.doc.data());
+        }
+      });
+      if(state.view !== 'activity' && fresh.length) state.unreadActivity += fresh.length;
+    }
+    state.lastSynced = new Date();
+    render();
+  }, ()=>{});
+  unsubs.push(activityUnsub);
+
+  const checkinsUnsub = db.collection('checkins').orderBy('time','desc').limit(200).onSnapshot(snap=>{
+    state.checkins = snap.docs.map(d=>({id:d.id, ...d.data()}));
+    if(state.role === 'admin' && state.view === 'map') refreshMapMarkers();
+    render();
+  }, ()=>{});
+  unsubs.push(checkinsUnsub);
+}
+
+/* ================= AUTH: password hashing + per-user accounts ================= */
+// Passwords are never stored in plain text. Each account gets a random salt;
+// we store only salt + SHA-256(salt + password). On login we redo the same
+// hash and compare — the real password is never written anywhere.
+function randomHex(numBytes){
+  const arr = new Uint8Array(numBytes);
+  crypto.getRandomValues(arr);
+  return Array.from(arr).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+async function sha256Hex(str){
+  const bytes = new TextEncoder().encode(str);
+  const buf = await crypto.subtle.digest('SHA-256', bytes);
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+async function hashPassword(password, salt){ return sha256Hex(salt + ':' + password); }
+
+function normalizeUsername(u){ return u.trim().toLowerCase().replace(/[^a-z0-9_.]/g, ''); }
+
+async function getUserDoc(username){
+  if(db){
+    try{ const d = await db.doc('users/' + username).get(); return d.exists ? d.data() : null; }
+    catch(e){ return null; }
+  }
+  const users = lsGet(LS_USERS, {});
+  return users[username] || null;
+}
+async function createUserDoc(username, data){
+  if(db){ await db.doc('users/' + username).set(data); }
+  else{
+    const users = lsGet(LS_USERS, {});
+    users[username] = data;
+    lsSet(LS_USERS, users);
+  }
+}
+
+async function doSignup(role, displayName, username, password, confirm, passcode, errEl){
+  errEl.textContent = '';
+  await dbReadyPromise;
+  const uname = normalizeUsername(username);
+  if(!displayName.trim() || !uname || !password){ errEl.textContent = 'Fill in all fields.'; return; }
+  if(uname.length < 3){ errEl.textContent = 'Username must be at least 3 characters (letters, numbers, . or _).'; return; }
+  if(password.length < 6){ errEl.textContent = 'Password must be at least 6 characters.'; return; }
+  if(password !== confirm){ errEl.textContent = 'Passwords do not match.'; return; }
+  if(role === 'admin' && passcode !== ADMIN_PASSCODE){ errEl.textContent = 'Incorrect admin invite code.'; return; }
+
+  const existing = await getUserDoc(uname);
+  if(existing){ errEl.textContent = 'That username is already taken. Try logging in instead.'; return; }
+
+  const salt = randomHex(16);
+  const hash = await hashPassword(password, salt);
+  const user = { username: uname, displayName: displayName.trim(), role, salt, hash, createdAt: new Date().toISOString() };
+  try{
+    await createUserDoc(uname, user);
+  }catch(e){
+    errEl.textContent = 'Could not create account — try again.';
+    return;
+  }
+  await completeLogin(user);
+}
+
+async function doLogin(role, username, password, errEl){
+  errEl.textContent = '';
+  await dbReadyPromise;
+  const uname = normalizeUsername(username);
+  if(!uname || !password){ errEl.textContent = 'Enter your username and password.'; return; }
+  const user = await getUserDoc(uname);
+  if(!user){ errEl.textContent = 'No account with that username. Sign up instead.'; return; }
+  if(role && user.role !== role){ errEl.textContent = `This account is registered as ${user.role}, not ${role}. Use the correct link.`; return; }
+  const hash = await hashPassword(password, user.salt);
+  if(hash !== user.hash){ errEl.textContent = 'Incorrect password.'; return; }
+  await completeLogin(user);
+}
+
+async function completeLogin(user){
+  state.role = user.role;
+  state.name = user.displayName;
+  state.username = user.username;
+  state.view = user.role === 'volunteer' ? 'tasks' : 'activity';
+  await initStore();
+  render();
+}
+
+/* -------- Local fallback (only used when this file is opened outside a published artifact, e.g. a raw downloaded copy) -------- */
+const LS_TASKS = 'vv_tasks_v1', LS_CHECKINS = 'vv_checkins_v1', LS_ACTIVITY = 'vv_activity_v1', LS_USERS = 'vv_users_v1';
+function lsGet(key, fallback){
+  try{ const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; }catch(e){ return fallback; }
+}
+function lsSet(key, val){ try{ localStorage.setItem(key, JSON.stringify(val)); }catch(e){} }
+
+function initLocalFallback(){
+  state.tasks = lsGet(LS_TASKS, null) || SEED_TASKS.slice();
+  if(!lsGet(LS_TASKS, null)) lsSet(LS_TASKS, state.tasks);
+  state.checkins = lsGet(LS_CHECKINS, []);
+  state.activity = lsGet(LS_ACTIVITY, []);
+  startLocalPolling();
+}
+function startLocalPolling(){
+  stopLocalPolling();
+  pollTimer = setInterval(localPoll, POLL_MS);
+  document.addEventListener('visibilitychange', onVisibility);
+  window.addEventListener('storage', onStorageEvt);
+  if(bc) bc.addEventListener('message', localPoll);
+}
+function stopLocalPolling(){
+  if(pollTimer){ clearInterval(pollTimer); pollTimer = null; }
+  document.removeEventListener('visibilitychange', onVisibility);
+  window.removeEventListener('storage', onStorageEvt);
+  if(bc) bc.removeEventListener('message', localPoll);
+}
+function onVisibility(){ if(document.visibilityState==='visible') localPoll(); }
+function onStorageEvt(e){ if([LS_TASKS,LS_CHECKINS,LS_ACTIVITY].includes(e.key)) localPoll(); }
+function localPoll(){
+  const freshTasks = lsGet(LS_TASKS, state.tasks);
+  const freshActivity = lsGet(LS_ACTIVITY, state.activity);
+  const freshCheckins = lsGet(LS_CHECKINS, state.checkins);
+  let changed = false;
+  if(JSON.stringify(freshTasks) !== JSON.stringify(state.tasks)){ state.tasks = freshTasks; changed = true; }
+  if(freshActivity.length !== state.activity.length){
+    const knownIds = new Set(state.activity.map(a=>a.id+':'+a.status));
+    const newly = freshActivity.filter(a=>!knownIds.has(a.id+':'+a.status));
+    state.activity = freshActivity;
+    state.freshIds = new Set(newly.map(a=>a.id));
+    if(state.role==='admin'){
+      newly.forEach(a=>{ if(a.volunteer!==state.name) showToast(a); });
+      if(state.view!=='activity') state.unreadActivity += newly.length;
+    }
+    changed = true;
+  }
+  if(freshCheckins.length !== state.checkins.length){
+    state.checkins = freshCheckins; changed = true;
+    if(state.role==='admin' && state.view==='map') refreshMapMarkers();
+  }
+  state.lastSynced = new Date();
+  if(changed) render(); else updateSyncLabel();
+}
+
+/* ================= ACTIONS ================= */
+
+async function addTask(title, org, place){
+  state.taskFormError = '';
+  if(!title.trim() || !org.trim() || !place.trim()){
+    state.taskFormError = 'Fill in all three fields.';
+    render();
+    return;
+  }
+  const payload = { title: title.trim(), org: org.trim(), place: place.trim(), createdBy: state.name, time: new Date().toISOString() };
+  if(db){
+    try{ await db.collection('tasks').add(payload); /* onSnapshot repaints for everyone */ }
+    catch(e){ state.taskFormError = 'Could not save — you may not have edit access to this artifact.'; render(); }
+  } else {
+    payload.id = 't' + Date.now();
+    state.tasks = [...state.tasks, payload];
+    lsSet(LS_TASKS, state.tasks);
+    if(bc) bc.postMessage({type:'tasks'});
+    render();
+  }
+}
+
+async function deleteTask(taskId){
+  if(db){
+    try{ await db.doc('tasks/' + taskId).delete(); }catch(e){}
+  } else {
+    state.tasks = state.tasks.filter(t=>t.id!==taskId);
+    lsSet(LS_TASKS, state.tasks);
+    if(bc) bc.postMessage({type:'tasks'});
+    render();
+  }
+}
+
+async function doCheckIn(task){
+  state.loadingTask = task.id;
+  render();
+
+  const attemptTime = new Date().toISOString();
+  const attemptData = { volunteer: state.name, taskId: task.id, taskTitle: task.title, place: task.place, status:'pending', time: attemptTime };
+  let cloudRef = null;
+  let localId = null;
+
+  if(db){
+    try{ cloudRef = await db.collection('activity').add(attemptData); }catch(e){ /* fall through to local echo below */ }
+  }
+  if(!cloudRef){
+    localId = 'a' + Date.now() + Math.random().toString(36).slice(2,7);
+    state.activity = [{...attemptData, id:localId}, ...state.activity];
+    lsSet(LS_ACTIVITY, state.activity);
+    if(bc) bc.postMessage({type:'activity'});
+    render();
+  }
+
+  try{
+    const coords = await getPosition();
+    const lat = coords.latitude, lon = coords.longitude;
+    const address = await reverseGeocode(lat, lon);
+    const resolvedAddress = address || `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
+    const successPatch = { status:'success', address: resolvedAddress, lat, lon, resolvedTime: new Date().toISOString() };
+
+    if(cloudRef){
+      await cloudRef.update(successPatch);
+      await db.collection('checkins').add({...attemptData, ...successPatch, accuracy: coords.accuracy});
+    } else {
+      const idx = state.activity.findIndex(a=>a.id===localId);
+      if(idx>-1) state.activity[idx] = {...state.activity[idx], ...successPatch};
+      lsSet(LS_ACTIVITY, state.activity);
+      const entry = {...attemptData, ...successPatch, accuracy: coords.accuracy, id:'c'+Date.now()};
+      state.checkins = [entry, ...state.checkins];
+      lsSet(LS_CHECKINS, state.checkins);
+      if(bc) bc.postMessage({type:'checkins'});
+    }
+
+    state.loadingTask = null;
+    state.lastResult = {ok:true, taskId: task.id, address: resolvedAddress};
+    render();
+  }catch(err){
+    let msg = 'Could not get your location.';
+    if(err.code === 1) msg = 'Location permission denied. Allow location access to check in.';
+    else if(err.code === 2) msg = 'Location unavailable right now. Try again.';
+    else if(err.code === 3) msg = 'Location request timed out. Try again.';
+    else if(err.message) msg = err.message;
+
+    const failPatch = { status:'failed', message: msg, resolvedTime: new Date().toISOString() };
+    if(cloudRef){
+      await cloudRef.update(failPatch);
+    } else {
+      const idx = state.activity.findIndex(a=>a.id===localId);
+      if(idx>-1) state.activity[idx] = {...state.activity[idx], ...failPatch};
+      lsSet(LS_ACTIVITY, state.activity);
+    }
+
+    state.loadingTask = null;
+    state.lastResult = {ok:false, taskId: task.id, msg};
+    render();
+  }
+}
+
+function myCheckins(){ return state.checkins.filter(c => c.volunteer === state.name); }
+function checkedInTaskIds(){ return new Set(myCheckins().map(c=>c.taskId)); }
+
+/* ---------------- Geolocation + reverse geocode ---------------- */
+function getPosition(){
+  return new Promise((resolve, reject)=>{
+    if(!navigator.geolocation){ reject(new Error('Geolocation is not supported by this browser.')); return; }
+    if(window.isSecureContext === false){ reject(new Error('Location needs a secure (https) page. Host this file on https (e.g. GitHub Pages / Netlify) or open it on a laptop.')); return; }
+    navigator.geolocation.getCurrentPosition(pos => resolve(pos.coords), err => reject(err), {enableHighAccuracy:true, timeout:12000, maximumAge:0});
+  });
+}
+async function reverseGeocode(lat, lon){
+  try{
+    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=16&addressdetails=1`;
+    const res = await fetch(url, {headers:{'Accept':'application/json'}});
+    if(!res.ok) throw new Error('reverse geocode failed');
+    const data = await res.json();
+    return data.display_name || null;
+  }catch(e){ return null; }
+}
+
+function showToast(a){
+  const stack = document.getElementById('toast-stack');
+  if(!stack) return;
+  const el = document.createElement('div');
+  el.className = 'toast';
+  const statusText = a.status === 'pending' ? 'is checking in…' : a.status === 'success' ? 'checked in ✓' : 'check-in failed';
+  el.innerHTML = `<b>${escapeHtml(a.volunteer)} ${statusText}</b><span>${escapeHtml(a.taskTitle||'')}</span>`;
+  stack.appendChild(el);
+  setTimeout(()=>{ el.style.opacity='0'; el.style.transition='opacity .4s'; setTimeout(()=>el.remove(),400); }, 4200);
+}
+function updateSyncLabel(){
+  const el = document.getElementById('sync-label');
+  if(el && state.lastSynced) el.textContent = 'LIVE · synced ' + state.lastSynced.toLocaleTimeString();
+}
+
+/* ================= RENDER ================= */
+function render(){
+  const app = document.getElementById('app');
+  if(!state.role){ app.innerHTML = renderGate(); wireGate(); return; }
+  app.innerHTML = renderTopbar() + (state.role === 'volunteer' ? renderVolunteerDash() : renderAdminDash());
+  wireCommon();
+  if(state.role === 'volunteer') wireVolunteer();
+  if(state.role === 'admin') wireAdmin();
+}
+
+// Invite code required to create a NEW admin account (not needed to log into an existing one).
+// Change this, then only share the admin link (?role=admin) + this code with people who should get admin access.
+const ADMIN_PASSCODE = 'ngo-admin-2026';
+
+function getForcedRole(){
+  // Dedicated VOLUNTEER application — locked to this role, no role picker.
+  return 'volunteer';
+}
+
+function renderGate(){
+  const forced = getForcedRole();
+  const intro = `
+    <div class="gate-hero">
+      <div>
+        <h2 class="serif">A field ledger for<br>every volunteer hour.</h2>
+        <p>VolunteerVerse gives NGOs one live place to register volunteers, assign tasks, and verify where the work actually happened — with encrypted logins and GPS-stamped check-ins that sync in real time across every device.</p>
+      </div>
+      <div class="stamp"><div class="inner"><span>VERIFIED</span><strong>Geo-Tagged<br>Check-In</strong><span>SINCE 2026</span></div></div>
+    </div>`;
+
+  if(forced === 'volunteer') return `<div class="gate">${intro}${renderAuthPanel('volunteer')}</div>`;
+  if(forced === 'admin') return `<div class="gate">${intro}${renderAuthPanel('admin')}</div>`;
+
+  // No role in the link: owner's own testing screen — pick a role, then the same login/signup panel.
+  return `
+  <div class="gate">${intro}
+    <div class="role-cards">
+      <div class="role-card" data-role="volunteer" id="card-volunteer">
+        <h3 class="serif">I'm a Volunteer</h3>
+        <p>See tasks the moment your admin adds them, check in at the location, and build your verified field log.</p>
+        <div class="pick">SELECT →</div>
+      </div>
+      <div class="role-card" data-role="admin" id="card-admin">
+        <h3 class="serif">I'm an NGO Admin</h3>
+        <p>Add tasks live, and watch check-ins arrive live — on your phone, your laptop, at the same time.</p>
+        <div class="pick">SELECT →</div>
+      </div>
+    </div>
+    <div id="auth-panel-slot"></div>
+  </div>`;
+}
+
+function renderAuthPanel(role){
+  const roleLabel = role === 'admin' ? 'NGO Admin' : 'Volunteer';
+  return `
+    <div class="signin-panel show">
+      <div class="auth-tabs">
+        <button type="button" class="auth-tab active" data-tab="login">Log In</button>
+        <button type="button" class="auth-tab" data-tab="signup">Sign Up</button>
+      </div>
+
+      <form id="login-form" class="auth-form">
+        <h3 class="serif" style="margin:12px 0 4px;">${roleLabel} log in</h3>
+        <label for="li-username">Username</label>
+        <input id="li-username" type="text" autocomplete="username" placeholder="e.g. tanishq">
+        <label for="li-password">Password</label>
+        <input id="li-password" type="password" autocomplete="current-password" placeholder="Password">
+        <button type="submit" class="btn-primary" id="li-submit">Log In</button>
+        <div class="mode-note err" id="li-error"></div>
+      </form>
+
+      <form id="signup-form" class="auth-form" style="display:none;">
+        <h3 class="serif" style="margin:12px 0 4px;">Create ${roleLabel.toLowerCase()} account</h3>
+        <label for="su-displayname">Your full name</label>
+        <input id="su-displayname" type="text" autocomplete="name" placeholder="e.g. Tanishq Sharma">
+        <label for="su-username">Choose a username</label>
+        <input id="su-username" type="text" autocomplete="username" placeholder="e.g. tanishq">
+        <label for="su-password">Choose a password</label>
+        <input id="su-password" type="password" autocomplete="new-password" placeholder="At least 6 characters">
+        <label for="su-confirm">Confirm password</label>
+        <input id="su-confirm" type="password" autocomplete="new-password" placeholder="Re-enter password">
+        ${role === 'admin' ? `
+        <label for="su-passcode">Admin invite code</label>
+        <input id="su-passcode" type="password" autocomplete="off" placeholder="Ask your NGO lead">` : ''}
+        <button type="submit" class="btn-primary" id="su-submit">Create Account</button>
+        <div class="mode-note err" id="su-error"></div>
+      </form>
+      <div class="mode-note" id="conn-note">⏳ Connecting to live server…</div>
+      <div class="mode-note">🔒 Passwords are salted and SHA-256 hashed before they're ever stored — never saved as plain text.</div>
+    </div>`;
+}
+
+function wireGate(){
+  const forced = getForcedRole();
+  setTimeout(updateConnNote, 0);
+  if(forced){ wireAuthPanel(forced); return; }
+
+  const cardV = document.getElementById('card-volunteer');
+  const cardA = document.getElementById('card-admin');
+  const slot = document.getElementById('auth-panel-slot');
+  function selectRole(role){
+    cardV.classList.toggle('selected', role==='volunteer');
+    cardA.classList.toggle('selected', role==='admin');
+    slot.innerHTML = renderAuthPanel(role);
+    wireAuthPanel(role);
+    updateConnNote();
+    slot.scrollIntoView({behavior:'smooth', block:'nearest'});
+  }
+  cardV.addEventListener('click', ()=>selectRole('volunteer'));
+  cardA.addEventListener('click', ()=>selectRole('admin'));
+}
+
+function wireAuthPanel(role){
+  const tabs = document.querySelectorAll('.auth-tab');
+  const loginForm = document.getElementById('login-form');
+  const signupForm = document.getElementById('signup-form');
+  tabs.forEach(t=>t.addEventListener('click', ()=>{
+    tabs.forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    const isLogin = t.dataset.tab === 'login';
+    loginForm.style.display = isLogin ? 'block' : 'none';
+    signupForm.style.display = isLogin ? 'none' : 'block';
+  }));
+
+  loginForm.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const btn = document.getElementById('li-submit');
+    const err = document.getElementById('li-error');
+    btn.disabled = true; btn.textContent = 'Connecting…';
+    const username = document.getElementById('li-username').value;
+    const password = document.getElementById('li-password').value;
+    try{ await doLogin(role, username, password, err); }
+    finally{ btn.disabled = false; btn.textContent = 'Log In'; }
+  });
+
+  signupForm.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const btn = document.getElementById('su-submit');
+    const err = document.getElementById('su-error');
+    btn.disabled = true; btn.textContent = 'Creating account…';
+    const displayName = document.getElementById('su-displayname').value;
+    const username = document.getElementById('su-username').value;
+    const password = document.getElementById('su-password').value;
+    const confirm = document.getElementById('su-confirm').value;
+    const passEl = document.getElementById('su-passcode');
+    const passcode = passEl ? passEl.value : '';
+    try{ await doSignup(role, displayName, username, password, confirm, passcode, err); }
+    finally{ btn.disabled = false; btn.textContent = 'Create Account'; }
+  });
+}
+
+function renderTopbar(){
+  const modeLabel = state.mode === 'cloud'
+    ? 'Cross-device · live'
+    : 'This browser only';
+  return `
+  <div class="topbar">
+    <div class="brand"><div class="mark">VV</div><h1 class="serif">VolunteerVerse</h1><span class="tag">Field Ledger</span></div>
+    <div class="session">
+      <span class="live-pill"><span class="live-dot"></span><span id="sync-label">${state.lastSynced ? 'LIVE · synced ' + state.lastSynced.toLocaleTimeString() : 'LIVE'}</span></span>
+      <span class="live-pill" style="opacity:.85;">${modeLabel}</span>
+      <span class="who">Signed in as <b>${escapeHtml(state.name)}</b> · ${state.role === 'volunteer' ? 'Volunteer' : 'NGO Admin'}</span>
+      <button class="btn-ghost" id="signout-btn">Sign out</button>
+    </div>
+  </div>`;
+}
+
+function wireCommon(){
+  const s = document.getElementById('signout-btn');
+  if(s) s.addEventListener('click', ()=>{
+    teardownStore();
+    // Keep the existing db connection (db / dbReadyPromise) alive so logging
+    // back in — or switching accounts — doesn't need to reconnect.
+    state = {role:null,name:'',username:null,view:'tasks',tasks:[],checkins:[],activity:[],loadingTask:null,unreadActivity:0,freshIds:new Set(),lastSynced:null,mode:state.mode,taskFormError:''};
+    render();
+  });
+}
+
+/* -------- Volunteer -------- */
+function renderVolunteerDash(){
+  const initials = state.name.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+  const doneIds = checkedInTaskIds();
+  const doneCount = doneIds.size;
+
+  const sidebar = `
+    <div class="side">
+      <div class="id-card">
+        <div class="av">${initials}</div><h3>${escapeHtml(state.name)}</h3>
+        <div class="role-lbl">VOLUNTEER · VERIFIED</div>
+        <div class="stats"><div><b>${doneCount}</b><span>Checked in</span></div><div><b>${Math.max(state.tasks.length-doneCount,0)}</b><span>Pending</span></div></div>
+      </div>
+      <div class="nav-box">
+        <button data-view="tasks" class="${state.view==='tasks'?'active':''}">Assigned Tasks</button>
+        <button data-view="log" class="${state.view==='log'?'active':''}">My Field Log</button>
+      </div>
+    </div>`;
+
+  let main = '';
+  if(state.view === 'tasks'){
+    main = `<div class="panel">
+      <h2 class="serif">Assigned tasks</h2>
+      <div class="sub">Your admin can add a task at any moment — it appears here instantly, no refresh needed.</div>
+      ${state.tasks.length ? state.tasks.map((t,i)=>renderTaskEntry(t,i,doneIds)).join('') : '<div class="empty">No tasks yet. Your admin hasn\'t added any — check back shortly.</div>'}
+    </div>`;
+  } else {
+    const mine = myCheckins();
+    main = `<div class="panel"><h2 class="serif">My field log</h2><div class="sub">Every verified, geo-tagged check-in you've made.</div>
+      ${mine.length ? mine.map(renderLogItem).join('') : '<div class="empty">No check-ins yet — head to Assigned Tasks to log your first one.</div>'}
+    </div>`;
+  }
+  return `<div class="dash">${sidebar}<div>${main}</div></div>`;
+}
+
+function renderTaskEntry(t, i, doneIds){
+  const isDone = doneIds.has(t.id);
+  const isLoading = state.loadingTask === t.id;
+  const result = state.lastResult && state.lastResult.taskId === t.id ? state.lastResult : null;
+  let btn = isDone
+    ? `<button class="checkin-btn done-btn" disabled>✓ Checked in</button>`
+    : `<button class="checkin-btn" data-task="${t.id}" ${isLoading?'disabled':''}>${isLoading ? 'Locating…' : 'Check In'}</button>`;
+  let resultHtml = '';
+  if(result){
+    resultHtml = result.ok
+      ? `<div class="geo-result">📍 Verified at <b>${escapeHtml(result.address)}</b> — your admin was notified live.</div>`
+      : `<div class="geo-result err">⚠️ ${escapeHtml(result.msg)} — this attempt was still logged for your admin.</div>`;
+  }
+  return `<div class="entry">
+    <div class="num">${String(i+1).padStart(2,'0')}</div>
+    <div class="body">
+      <h4>${escapeHtml(t.title)} <span class="badge ${isDone?'done':'open'}">${isDone?'LOGGED':'OPEN'}</span></h4>
+      <div class="meta">${escapeHtml(t.org)}</div>
+      <div class="loc">Site: ${escapeHtml(t.place)}</div>
+      ${resultHtml}
+    </div>
+    <div>${btn}</div>
+  </div>`;
+}
+
+function renderLogItem(c){
+  return `<div class="log-item"><div class="dot"></div><div class="txt">
+    <b>${escapeHtml(c.taskTitle)}</b><br><span class="addr">${escapeHtml(c.address)}</span><br><span class="when">${formatTime(c.time)}</span>
+  </div></div>`;
+}
+
+function wireVolunteer(){
+  document.querySelectorAll('.nav-box button[data-view]').forEach(b=>b.addEventListener('click', ()=>{ state.view=b.dataset.view; render(); }));
+  document.querySelectorAll('.checkin-btn[data-task]').forEach(b=>b.addEventListener('click', ()=>{
+    const task = state.tasks.find(t=>t.id === b.dataset.task);
+    if(task) doCheckIn(task);
+  }));
+}
+
+/* -------- Admin -------- */
+function renderAdminDash(){
+  const totalCheckins = state.checkins.length;
+  const uniqueVolunteers = new Set(state.checkins.map(c=>c.volunteer)).size;
+  const uniqueTasks = new Set(state.checkins.map(c=>c.taskId)).size;
+
+  const sidebar = `
+    <div class="side">
+      <div class="id-card"><div class="av">${state.name[0]?.toUpperCase()||'A'}</div><h3>${escapeHtml(state.name)}</h3><div class="role-lbl">NGO ADMINISTRATOR</div></div>
+      <div class="nav-box">
+        <button data-view="activity" class="${state.view==='activity'?'active':''}"><span>Live Activity</span>${state.unreadActivity?`<span class="unread">${state.unreadActivity}</span>`:''}</button>
+        <button data-view="map" class="${state.view==='map'?'active':''}">Live Map</button>
+        <button data-view="tasks" class="${state.view==='tasks'?'active':''}">Manage Tasks</button>
+        <button data-view="log" class="${state.view==='log'?'active':''}">All Check-Ins</button>
+      </div>
+    </div>`;
+
+  let main = '';
+  if(state.view === 'activity'){
+    main = `<div class="panel">
+      <h2 class="serif">Live activity</h2>
+      <div class="sub">Updates the instant a volunteer attempts a check-in — pending, verified, or failed. ${state.mode==='cloud' ? 'Works from any device that has this app.' : 'Open this file in another tab of this browser to test.'}</div>
+      ${state.activity.length ? state.activity.slice(0,40).map(renderActivityItem).join('') : '<div class="empty">No activity yet.</div>'}
+    </div>`;
+  } else if(state.view === 'map'){
+    main = `
+      <div class="stat-row">
+        <div class="stat"><b>${totalCheckins}</b><span>Total check-ins</span></div>
+        <div class="stat"><b>${uniqueVolunteers}</b><span>Active volunteers</span></div>
+        <div class="stat"><b>${uniqueTasks}</b><span>Tasks with activity</span></div>
+      </div>
+      <div class="panel">
+        <h2 class="serif">Live check-in map</h2>
+        <div class="sub">Every marker is a GPS-verified check-in. New pins appear automatically.</div>
+        <div id="map"></div>
+        <div class="foot-note">Locations reverse-geocoded via OpenStreetMap Nominatim.</div>
+      </div>`;
+  } else if(state.view === 'tasks'){
+    main = `<div class="panel">
+      <h2 class="serif">Manage tasks</h2>
+      <div class="sub">Add a task and it appears for every volunteer immediately — on any device.</div>
+      <div class="task-form">
+        <div><label>Task title</label><input id="tf-title" placeholder="e.g. Blood donation camp"></div>
+        <div><label>Organisation</label><input id="tf-org" placeholder="e.g. VolunteerVerse NGO"></div>
+        <div><label>Site / location</label><input id="tf-place" placeholder="e.g. Civil Lines Community Hall"></div>
+        <button class="btn-primary" id="tf-add">Add Task</button>
+      </div>
+      ${state.taskFormError ? `<div class="geo-result err" style="margin-bottom:16px;">${escapeHtml(state.taskFormError)}</div>` : ''}
+      ${state.tasks.length ? state.tasks.map(renderTaskMini).join('') : '<div class="empty">No tasks yet — add the first one above.</div>'}
+    </div>`;
+  } else {
+    main = `<div class="panel"><h2 class="serif">All check-ins</h2><div class="sub">Full log across all volunteers, most recent first.</div>
+      ${state.checkins.length ? `<table><thead><tr><th>Volunteer</th><th>Task</th><th>Verified location</th><th>Coordinates</th><th>Time</th></tr></thead><tbody>
+        ${state.checkins.map(c=>`<tr><td>${escapeHtml(c.volunteer)}</td><td>${escapeHtml(c.taskTitle)}</td><td>${escapeHtml(c.address)}</td><td class="coord">${(+c.lat).toFixed(5)}, ${(+c.lon).toFixed(5)}</td><td>${formatTime(c.time)}</td></tr>`).join('')}
+      </tbody></table>` : '<div class="empty">No check-ins logged yet.</div>'}
+    </div>`;
+  }
+  return `<div class="dash">${sidebar}<div>${main}</div></div>`;
+}
+
+function renderTaskMini(t){
+  return `<div class="task-mini">
+    <div><div class="t-title">${escapeHtml(t.title)}</div><div class="t-meta">${escapeHtml(t.org)} · ${escapeHtml(t.place)}</div></div>
+    <button class="del-btn" data-del="${t.id}">Remove</button>
+  </div>`;
+}
+
+function renderActivityItem(a){
+  const isFresh = state.freshIds.has(a.id);
+  const label = a.status === 'pending' ? 'IN PROGRESS' : a.status === 'success' ? 'VERIFIED' : 'FAILED';
+  let detail;
+  if(a.status === 'pending') detail = `<div class="a-meta">Requesting device location…</div>`;
+  else if(a.status === 'success') detail = `<div class="a-meta">Checked in at ${formatTime(a.resolvedTime)}</div><div class="a-addr">📍 ${escapeHtml(a.address||'')}</div>`;
+  else detail = `<div class="a-meta" style="color:var(--rust);">${escapeHtml(a.message || 'Check-in failed')}</div>`;
+  return `<div class="activity-item ${isFresh?'fresh':''}">
+    <div class="status-dot ${a.status}"></div>
+    <div><div class="a-title">${escapeHtml(a.volunteer)} — ${escapeHtml(a.taskTitle)}</div>${detail}</div>
+    <div class="status-tag ${a.status}">${label}</div>
+  </div>`;
+}
+
+function wireAdmin(){
+  state.freshIds = new Set();
+  document.querySelectorAll('.nav-box button[data-view]').forEach(b=>b.addEventListener('click', ()=>{
+    state.view = b.dataset.view;
+    if(state.view==='activity') state.unreadActivity = 0;
+    render();
+    if(state.view==='map') setTimeout(initMap, 30);
+  }));
+  const addBtn = document.getElementById('tf-add');
+  if(addBtn){
+    addBtn.addEventListener('click', ()=>{
+      const title = document.getElementById('tf-title').value;
+      const org = document.getElementById('tf-org').value;
+      const place = document.getElementById('tf-place').value;
+      addTask(title, org, place);
+    });
+  }
+  document.querySelectorAll('.del-btn[data-del]').forEach(b=>b.addEventListener('click', ()=>deleteTask(b.dataset.del)));
+}
+
+let mapInstance = null, markerLayer = null;
+function initMap(){
+  const el = document.getElementById('map');
+  if(!el) return;
+  if(mapInstance){ mapInstance.remove(); mapInstance = null; }
+  const pts = state.checkins.filter(c => typeof c.lat === 'number');
+  const center = pts.length ? [pts[0].lat, pts[0].lon] : [21.1458, 79.0882];
+  mapInstance = L.map('map').setView(center, pts.length ? 12 : 11);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution:'&copy; OpenStreetMap contributors', maxZoom:19}).addTo(mapInstance);
+  plotMarkers(pts);
+}
+function refreshMapMarkers(){ if(mapInstance){ plotMarkers(state.checkins.filter(c=>typeof c.lat==='number'), true); } }
+function plotMarkers(pts, keepView){
+  if(markerLayer) mapInstance.removeLayer(markerLayer);
+  markerLayer = L.layerGroup().addTo(mapInstance);
+  const bounds = [];
+  pts.forEach(c=>{
+    const marker = L.circleMarker([c.lat, c.lon], {radius:8, color:'#C9902F', weight:2, fillColor:'#1F4B43', fillOpacity:0.85}).addTo(markerLayer);
+    marker.bindPopup(`<b>${escapeHtml(c.volunteer)}</b><br>${escapeHtml(c.taskTitle)}<br><small>${escapeHtml(c.address)}</small><br><small>${formatTime(c.time)}</small>`);
+    bounds.push([c.lat, c.lon]);
+  });
+  if(!keepView && bounds.length > 1) mapInstance.fitBounds(bounds, {padding:[30,30]});
+}
+
+/* ---------------- Utils ---------------- */
+function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+function formatTime(iso){ const d = new Date(iso); return d.toLocaleString(undefined, {dateStyle:'medium', timeStyle:'short'}); }
+
+/* ---------------- Boot ---------------- */
+render();
+</script>
+</body>
+</html>
